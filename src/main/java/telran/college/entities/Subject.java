@@ -15,7 +15,7 @@ public class Subject {
 	String name;
 	int hours;
 	@ManyToOne
-	@JoinColumn(name="lecturer_id")
+	@JoinColumn(name="lecturer_id" , nullable =true)
 	Lecturer lecturer;
 	@Enumerated(value=EnumType.STRING)
 	@Column(nullable = false)

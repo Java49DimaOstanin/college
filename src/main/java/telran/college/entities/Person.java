@@ -30,4 +30,10 @@ public abstract class Person {
 	public PersonDto build() {
 		return new PersonDto(id, name, birthDate, city, phone);
 	}
+	public void setCity(String city) {
+		this.city = city;
+	}
+	public void setPhone(String phone) {
+		this.phone = phone;
+	}
 }
