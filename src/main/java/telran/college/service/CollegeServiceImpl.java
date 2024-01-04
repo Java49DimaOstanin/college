@@ -1,11 +1,14 @@
 package telran.college.service;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.*;
 import lombok.RequiredArgsConstructor;
 import telran.college.dto.*;
 import telran.college.entities.*;
@@ -13,43 +16,51 @@ import telran.college.repo.*;
 import telran.exceptions.NotFoundException;
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly=true)
+
 public class CollegeServiceImpl implements CollegeService {
 	final StudentRepo studentRepo;
 	final LecturerRepo lecturerRepo;
 	final SubjectRepo subjectRepo;
 	final MarkRepo markRepo;
+	final EntityManager em;
 	@Override
+	@Transactional(readOnly=true)
 	public List<String> bestStudentsSubjectType(SubjectType type, int nStudents) {
 		
 		return studentRepo.findBestStudentsSubjectType( type, nStudents);
 	}
 	@Override
+	@Transactional(readOnly=true)
 	public List<NameScore> studentsAvgMarks() {
 		
 		return studentRepo.studentsMarks();
 	}
 	@Override
+	@Transactional(readOnly=true)
 	public List<LecturerHours> lecturersMostHours(int nLecturers) {
 		
 		return lecturerRepo.findLecturersMostHours(nLecturers);
 	}
 	@Override
+	@Transactional(readOnly=true)
 	public List<StudentCity> studentsScoresLess(int nThreshold) {
 		
 		return studentRepo.findStudentCitiesScoresLess(nThreshold);
 	}
 	@Override
+	@Transactional(readOnly=true)
 	public List<NamePhone> studentsBurnMonth(int month) {
 		
 		return studentRepo.findStudentsBurnMonth(month);
 	}
 	@Override
+	@Transactional(readOnly=true)
 	public List<NamePhone> lecturersCity(String city) {
 		
 		return lecturerRepo.findByCity(city);
 	}
 	@Override
+	@Transactional(readOnly=true)
 	public List<SubjectNameScore> subjectsScores(String studentName) {
 		
 		return markRepo.findByStudentName(studentName);
@@ -120,7 +131,7 @@ public class CollegeServiceImpl implements CollegeService {
 		return personDto;
 	}
 	@Override
-	@Transactional(readOnly = false)
+	@Transactional
 	public PersonDto updateLecturer(PersonDto personDto) {
 		
 		return updatePerson(personDto, lecturerRepo, "lecturer");
@@ -129,8 +140,6 @@ public class CollegeServiceImpl implements CollegeService {
 	@Transactional(readOnly = false)
 	public PersonDto deleteLecturer(long id) {
 		Lecturer lecturer = findLecturer(id);
-		List<Subject> subjects = subjectRepo.findByLecturerId(id);
-		subjects.forEach(s -> s.setLecturer(null));
 		lecturerRepo.delete(lecturer);
 		return lecturer.build();
 	}
@@ -138,8 +147,6 @@ public class CollegeServiceImpl implements CollegeService {
 	@Transactional(readOnly = false)
 	public SubjectDto deleteSubject(long id) {
 		Subject subject = findSubject(id);
-		List<Mark> marks = markRepo.findBySubjectId(id);
-		marks.forEach(markRepo::delete);
 		subjectRepo.delete(subject);
 		return subject.build();
 	}
@@ -160,9 +167,52 @@ public class CollegeServiceImpl implements CollegeService {
 		return studentRepo.findStudentsScoresLess(nScores);
 	}
 	void deleteStudent(Student student) {
-		List<Mark> marks = markRepo.findByStudentId(student.getId());
-		marks.forEach(markRepo::delete);
+		
 		studentRepo.delete(student);
+	}
+	@Override
+	
+	public List<String> anyQuery(QueryDto queryDto) {
+		String queryStr = queryDto.query();
+		List<String> res = null;
+		Query query;
+		try {
+			query = queryDto.queryType() == QueryType.SQL ?
+					em.createNativeQuery(queryStr) : em.createQuery(queryStr);
+			res = getResult(query);
+		} catch (Throwable e) {
+			res = List.of(e.getMessage());
+		}
+		return res;
+	}
+	@SuppressWarnings("unchecked")
+	private List<String> getResult(Query query) {
+		List<String> res = Collections.emptyList();
+		List<?> resultList = Collections.emptyList();
+		try {
+			resultList = query.getResultList();
+		} catch (Exception e) {
+			res = List.of(e.getMessage());
+		}
+		
+		if (!resultList.isEmpty()) {
+			res = resultList.get(0).getClass().isArray() ?
+					listObjectArraysProcessing((List<Object[]>)resultList) : 
+						listObjectsProcessing(resultList);
+		}
+		return res;
+	}
+	private List<String> listObjectsProcessing(List<?> resultList) {
+		
+		try {
+			return resultList.stream().map(Object::toString).toList();
+		} catch (Exception e) {
+			return List.of(e.getMessage());
+		}
+	}
+	private List<String> listObjectArraysProcessing(List<Object[]> resultList) {
+		
+		return resultList.stream().map(Arrays::deepToString).toList();
 	}
 
 }

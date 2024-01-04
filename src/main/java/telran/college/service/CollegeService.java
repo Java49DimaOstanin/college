@@ -17,10 +17,10 @@ public interface CollegeService {
 	SubjectDto addSubject(SubjectDto subjectDto);
 	MarkDto addMark(MarkDto markDto);
 	PersonDto updateStudent(PersonDto personDto);
-	PersonDto updateLecturer (PersonDto personDto);
+	PersonDto updateLecturer(PersonDto personDto);
 	PersonDto deleteLecturer(long id);
 	SubjectDto deleteSubject(long id);
 	List<PersonDto> deleteStudentsHavingScoresLess(int nScores);
-	
+	List<String> anyQuery(QueryDto queryDto);
 	
 }
